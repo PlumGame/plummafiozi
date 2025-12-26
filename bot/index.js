@@ -6,7 +6,7 @@ bot.onText(/\/start/, msg => {
   bot.sendMessage(msg.chat.id, 'Играть', {
     reply_markup: {
       web_app: {
-        url: 'https://YOUR_APP.netlify.app'
+        url: 'https://plummzfiozi.netlify.app'
       }
     }
   })
