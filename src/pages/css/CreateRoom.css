@@ -1,8 +1,8 @@
 /* ===== RESET ===== */
 * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -49,7 +49,7 @@ html, body {
   to   { filter: brightness(0.65); }
 }
 
-/* ===== TITLE ===== */
+/* ===== TITLE WRAP ===== */
 .title-wrap {
   position: relative;
   z-index: 1;
@@ -57,7 +57,9 @@ html, body {
   text-align: center;
 }
 
+/* ===== MAFIA TITLE (SAME STYLE) ===== */
 .app-title {
+  position: relative;
   font-size: clamp(48px, 14vw, 96px);
   font-weight: 900;
   letter-spacing: 0.15em;
@@ -66,10 +68,33 @@ html, body {
     0 0 10px #ff1e1e,
     0 0 25px rgba(255,0,0,0.8),
     0 0 60px rgba(255,0,0,0.6);
-  animation: flicker 2.5s infinite, glitch 3s infinite;
+  animation: flicker 2.5s infinite;
 }
 
-/* МЕРЦАНИЕ */
+/* GLITCH LAYERS */
+.app-title::before,
+.app-title::after {
+  content: "МАФИЯ";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-title::before {
+  color: #ff0000;
+  opacity: 0.7;
+  transform: translate(-2px, 0);
+  animation: glitchLeft 3s infinite;
+}
+
+.app-title::after {
+  color: #ff6a6a;
+  opacity: 0.5;
+  transform: translate(2px, 0);
+  animation: glitchRight 2.5s infinite;
+}
+
+/* ===== TITLE ANIMATIONS ===== */
 @keyframes flicker {
   0%, 100% { opacity: 1; }
   45% { opacity: 0.85; }
@@ -78,16 +103,21 @@ html, body {
   52% { opacity: 0.7; }
 }
 
-/* GLITCH */
-@keyframes glitch {
-  0% { transform: none; }
-  20% { transform: skew(-1deg); }
-  40% { transform: skew(1deg); }
-  60% { transform: translateX(-2px); }
-  80% { transform: translateX(2px); }
-  100% { transform: none; }
+@keyframes glitchLeft {
+  0%, 100% { transform: translate(0,0); }
+  20% { transform: translate(-2px, -1px); }
+  40% { transform: translate(2px, 1px); }
+  60% { transform: translate(-1px, 1px); }
 }
 
+@keyframes glitchRight {
+  0%, 100% { transform: translate(0,0); }
+  25% { transform: translate(2px, 0); }
+  50% { transform: translate(-2px, 0); }
+  75% { transform: translate(1px, -1px); }
+}
+
+/* ===== SUBTITLE ===== */
 .subtitle {
   margin-top: 10px;
   font-size: 14px;
@@ -151,7 +181,7 @@ html, body {
   cursor: not-allowed;
 }
 
-/* GHOST */
+/* GHOST BUTTON */
 .glow-btn.ghost {
   background: rgba(255,255,255,0.08);
   box-shadow: none;
