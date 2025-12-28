@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRoom, addPlayer } from '../lib/rooms';
-import '../index.css';
+import './css/JoinRoom.css';
 
 export default function JoinRoom() {
   const nav = useNavigate();

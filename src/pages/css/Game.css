@@ -1,0 +1,242 @@
+/* ===== BASE ===== */
+.game-screen {
+  position: relative;
+  overflow: hidden;
+}
+
+/* DAY / NIGHT MOOD */
+.game-screen.day::before {
+  filter: brightness(0.65) saturate(0.9);
+}
+
+.game-screen.night::before {
+  filter: brightness(0.4) saturate(1.1);
+}
+
+/* ===== CONTAINER ===== */
+.game-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1200px;
+  padding: 16px;
+  margin: 0 auto;
+}
+
+/* ===== TOP ===== */
+.game-top {
+  margin-bottom: 16px;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.small-title {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.code-pill {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  background: rgba(255, 0, 0, 0.15);
+  border: 1px solid rgba(255, 0, 0, 0.35);
+}
+
+/* ===== MAIN GRID ===== */
+.game-main {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .game-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== CARD BASE ===== */
+.card-soft {
+  background: rgba(10, 10, 10, 0.7);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow:
+    0 0 30px rgba(255,0,0,0.15),
+    inset 0 0 25px rgba(255,255,255,0.03);
+  padding: 16px;
+}
+
+/* ===== SECTION ===== */
+.section-title {
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* ===== ROLE ===== */
+.role-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.role-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.icon-btn:hover {
+  background: rgba(255,0,0,0.25);
+}
+
+/* ===== ROLE CARD ===== */
+.role-card {
+  margin-top: 14px;
+  border-radius: 22px;
+  padding: 16px;
+  background: linear-gradient(160deg, #0c0c0c, #140000);
+  border: 1px solid rgba(255,0,0,0.3);
+  box-shadow: 0 0 40px rgba(255,0,0,0.35);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.game-container.zoom .role-card {
+  transform: scale(1.08);
+}
+
+.role-card:not(.revealed) {
+  filter: blur(10px) brightness(0.5);
+}
+
+.role-card.mafia {
+  background: linear-gradient(160deg, #180000, #300000);
+  box-shadow: 0 0 60px rgba(255,0,0,0.6);
+}
+
+.role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-name {
+  font-size: 22px;
+  letter-spacing: 0.2em;
+  font-weight: 800;
+  color: #ff2a2a;
+}
+
+.role-status {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.role-status.dead {
+  color: #888;
+  text-decoration: line-through;
+}
+
+.role-thumb {
+  width: 110px;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(255,0,0,0.5));
+}
+
+/* ===== NOTE ===== */
+.role-note {
+  margin-top: 10px;
+  text-align: center;
+  opacity: 0.5;
+}
+
+/* ===== PLAYERS ===== */
+.players-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.players-list-wrap {
+  margin-top: 12px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.players-list-wrap.open {
+  max-height: 420px;
+}
+
+.players-compact {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.player-row.you {
+  border-color: rgba(255,0,0,0.6);
+  box-shadow: 0 0 12px rgba(255,0,0,0.4);
+}
+
+.player-name {
+  font-size: 14px;
+}
+
+.player-sub {
+  font-size: 11px;
+}
+
+.ready-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #444;
+}
+
+.ready-dot.ready {
+  background: #ff1e1e;
+  box-shadow: 0 0 10px rgba(255,0,0,0.7);
+}
+
+/* ===== ACTIONS ===== */
+.players-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}

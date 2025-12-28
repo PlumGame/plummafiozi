@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRoom, addPlayer, getRoom } from '../lib/rooms';
-import '../index.css';
+import './css/CreateRoom.css';
 
 function generateCode(length = 6) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // без похожих символов

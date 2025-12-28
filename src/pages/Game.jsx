@@ -1,7 +1,7 @@
 // src/pages/Game.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import '../index.css';
+import './css/Game.css';
 import { fetchGameByCode, getMyRole, fetchPlayers } from '../lib/rooms';
 
 const ROLE_IMAGE_MAP = {

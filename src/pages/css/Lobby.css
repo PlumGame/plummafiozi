@@ -1,0 +1,205 @@
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ===== SCREEN ===== */
+.screen-center {
+  position: relative;
+  width: 100vw;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  z-index: 1;
+}
+
+/* ===== BACKGROUND ===== */
+.screen-center::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(255,0,0,0.18), transparent 40%),
+    linear-gradient(to bottom, rgba(0,0,0,.35), #000),
+    url("../../assets/lo.jpg");
+  background-size: cover;
+  background-position: center;
+  pointer-events: none; /* клики проходят сквозь фон */
+  z-index: 0;
+  filter: contrast(1.1) brightness(0.6);
+  animation: bgPulse 8s infinite alternate;
+}
+
+@keyframes bgPulse {
+  from { filter: brightness(0.5); }
+  to { filter: brightness(0.7); }
+}
+
+/* ===== TITLE ===== */
+.title-wrap {
+  text-align: center;
+  margin-top: 8vh;
+  position: relative;
+  z-index: 1;
+}
+
+.app-title {
+  font-size: clamp(48px, 14vw, 96px);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #ff1e1e;
+  text-shadow:
+    0 0 10px #ff1e1e,
+    0 0 25px rgba(255,0,0,0.8),
+    0 0 60px rgba(255,0,0,0.6);
+  animation: flicker 2.5s infinite, glitch 3s infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.85; }
+  47% { opacity: 0.4; }
+  49% { opacity: 1; }
+  52% { opacity: 0.7; }
+}
+
+@keyframes glitch {
+  0% { transform: none; }
+  20% { transform: skew(-1deg); }
+  40% { transform: skew(1deg); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+  100% { transform: none; }
+}
+
+.subtitle {
+  margin-top: 12px;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  opacity: 0.75;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== CARDS & SECTIONS ===== */
+.card, section {
+  background: rgba(0,0,0,0.28);
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,200,50,0.06);
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== BUTTONS ===== */
+.glow-btn {
+  height: 44px;
+  border-radius: 10px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: linear-gradient(135deg, #ff1e1e, #b30000);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255,0,0,0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.glow-btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 35px rgba(255,0,0,0.7);
+}
+
+.glow-btn.ghost {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.glow-btn.ghost:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* ===== INPUTS ===== */
+input[type="text"] {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+  outline: none;
+  position: relative;
+  z-index: 1;
+}
+
+input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+/* ===== FOOTER ===== */
+.small-footer {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.4;
+  padding-bottom: env(safe-area-inset-bottom);
+  margin-top: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== PLAYER LIST ===== */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.02);
+  position: relative;
+  z-index: 1;
+}
+
+li .avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,216,77,0.08), rgba(255,200,50,0.03));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd84d;
+  font-weight: 800;
+  font-size: 16px;
+  position: relative;
+  z-index: 1;
+}

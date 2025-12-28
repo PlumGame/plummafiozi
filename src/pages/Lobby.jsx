@@ -1,7 +1,7 @@
 // src/pages/Lobby.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import '../index.css';
+import './css/Lobby.css';
 import {
   fetchPlayers,
   setPlayerReady,
