@@ -166,7 +166,7 @@ export default function Lobby() {
   };
 
   return (
-    <div className="screen-center">
+    <div className="screen-center lobby-root">
       <div className="title-wrap">
         <h1 className="app-title flicker">МАФИЯ</h1>
         <p className="subtitle">
@@ -221,7 +221,7 @@ export default function Lobby() {
         </section>
       </div>
 
-      <footer className="small-footer">Версия прототипа</footer>
+      <footer className="small-footer"></footer>
     </div>
   );
 }
