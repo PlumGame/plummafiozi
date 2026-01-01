@@ -96,7 +96,18 @@ export async function startGame(roomCode) {
 
     const count = players.length;
     let rolesPool = [];
-    if (count >= 4) {
+    // Простейшая логика: 1 мафия для 4-6, 2 для 7-9, 3 для 10+
+    if (count >= 10) {
+      const mafiaCount = 3;
+      rolesPool = Array.from({ length: mafiaCount }).map(() => 'mafia');
+      rolesPool.push('sheriff', 'doctor');
+      while (rolesPool.length < count) rolesPool.push('villager');
+    } else if (count >= 7) {
+      const mafiaCount = 2;
+      rolesPool = Array.from({ length: mafiaCount }).map(() => 'mafia');
+      rolesPool.push('sheriff', 'doctor');
+      while (rolesPool.length < count) rolesPool.push('villager');
+    } else if (count >= 4) {
       rolesPool = ['mafia', 'sheriff', 'doctor'];
       while (rolesPool.length < count) rolesPool.push('villager');
     } else {
@@ -138,7 +149,7 @@ export async function getMyRole(playerId, gameId) {
     if (!playerId || !gameId) return { data: null, error: new Error('missing playerId or gameId') };
     const res = await supabase
       .from('player_roles')
-      .select('role,is_alive,player_id,game_id')
+      .select('role,is_alive,player_id,game_id,doctor_self_heal_used')
       .eq('player_id', playerId)
       .eq('game_id', gameId)
       .maybeSingle();
@@ -150,6 +161,12 @@ export async function getMyRole(playerId, gameId) {
 
 /* Actions (night/day) helpers */
 
+/*
+  submitPlayerAction:
+  - логирует payload в консоль (для отладки)
+  - использует upsert onConflict по (game_id, player_id, phase)
+  - возвращает результат upsert
+*/
 export async function submitPlayerAction({ gameId, playerId, phase, actionType, targetId }) {
   try {
     const payload = {
@@ -158,14 +175,20 @@ export async function submitPlayerAction({ gameId, playerId, phase, actionType, 
       phase,
       action_type: actionType,
       target_id: targetId ?? null,
-      created_at: new Date().toISOString(),
     };
+
+    // Лог для отладки: убедись, что payload корректный
+    try { console.log('SUBMIT ACTION', payload); } catch {}
+
     const res = await supabase
       .from('actions')
       .upsert(payload, { onConflict: ['game_id', 'player_id', 'phase'] })
       .select();
+
+    try { console.log('UPsert result', res); } catch {}
     return { data: res.data ?? null, error: res.error ?? null };
   } catch (e) {
+    console.error('submitPlayerAction error', e);
     return { data: null, error: e };
   }
 }
@@ -182,6 +205,25 @@ export async function startNight(roomCode, durationSec = 60) {
 export async function resolveNight(roomCode) {
   try {
     const res = await supabase.rpc('resolve_night', { p_code: roomCode });
+    return { data: res.data ?? null, error: res.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function resolveDay(roomCode) {
+  try {
+    const res = await supabase.rpc('resolve_day', { p_code: roomCode });
+    return { data: res.data ?? null, error: res.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+/* Tick (автофазы) */
+export async function tickGame(roomCode) {
+  try {
+    const res = await supabase.rpc('tick_game', { p_code: roomCode });
     return { data: res.data ?? null, error: res.error ?? null };
   } catch (e) {
     return { data: null, error: e };
@@ -218,3 +260,13 @@ export function subscribeGames(roomCode, onChange) {
     .subscribe();
   return { unsubscribe: () => supabase.removeChannel(channel) };
 }
+
+export async function getPlayer(roomCode, playerId) {
+  return supabase
+    .from('players')
+    .select('*')
+    .eq('room_code', roomCode)
+    .eq('id', playerId)
+    .single();
+}
+

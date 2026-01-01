@@ -1,7 +1,8 @@
 // src/pages/JoinRoom.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getRoom, addPlayer } from '../lib/rooms';
+import { getRoom, addPlayer, getPlayer } from '../lib/rooms';
+
 import './css/JoinRoom.css';
 
 export default function JoinRoom() {
@@ -10,55 +11,63 @@ export default function JoinRoom() {
   const [code, setCode] = useState('');
   const [joining, setJoining] = useState(false);
 
-  const handleJoin = async () => {
-    const trimmed = (code || '').trim().toUpperCase();
-    const trimmedName = (name || '').trim();
-    if (!trimmed || !trimmedName) {
-      alert('Введите код комнаты и имя');
+const handleJoin = async () => {
+  const trimmed = (code || '').trim().toUpperCase();
+  const trimmedName = (name || '').trim();
+
+  if (!trimmed || !trimmedName) {
+    alert('Введите код комнаты и имя');
+    return;
+  }
+
+  if (trimmedName === trimmed) {
+    alert('Имя не может совпадать с кодом комнаты');
+    return;
+  }
+
+ const existingPlayerId = localStorage.getItem('playerId');
+
+if (existingPlayerId) {
+  const { data: existingPlayer } = await getPlayer(trimmed, existingPlayerId);
+
+  if (existingPlayer) {
+    nav(`/lobby/${trimmed}`, {
+      state: {
+        playerId: existingPlayer.id,
+        name: existingPlayer.name,
+      },
+    });
+    return;
+  } else {
+    localStorage.removeItem('playerId');
+  }
+}
+
+
+  setJoining(true);
+  try {
+    const { data: room } = await getRoom(trimmed);
+    if (!room) {
+      alert('Комната не найдена');
       return;
     }
 
-    setJoining(true);
-    try {
-      // Проверяем, существует ли комната
-      const { data: room, error: roomErr } = await getRoom(trimmed);
-      console.log('getRoom', { trimmed, room, roomErr });
-      if (roomErr) {
-        console.error('getRoom error', roomErr);
-        alert('Ошибка проверки комнаты: ' + (roomErr.message || 'ошибка'));
-        setJoining(false);
-        return;
-      }
-      if (!room) {
-        alert('Комната не найдена');
-        setJoining(false);
-        return;
-      }
+    const { data: player, error } = await addPlayer({
+      roomCode: trimmed,
+      name: trimmedName,
+    });
 
-      // Добавляем игрока
-      const { data: player, error: playerErr } = await addPlayer({ roomCode: trimmed, name: trimmedName });
-      console.log('addPlayer', { trimmed, player, playerErr });
-      if (playerErr) {
-        console.error('addPlayer error', playerErr);
-        alert('Не удалось присоединиться: ' + (playerErr.message || 'ошибка'));
-        setJoining(false);
-        return;
-      }
-
-      // Сохраняем playerId локально и переходим в лобби
-      try {
-        localStorage.setItem('playerId', player.id);
-      } catch (e) {
-        console.warn('localStorage setItem failed', e);
-      }
-      nav(`/lobby/${trimmed}`, { state: { name: trimmedName, playerId: player.id } });
-    } catch (e) {
-      console.error('handleJoin exception', e);
-      alert('Произошла ошибка при присоединении');
-    } finally {
-      setJoining(false);
+    if (error) {
+      alert('Ошибка входа');
+      return;
     }
-  };
+
+    nav(`/lobby/${trimmed}`, { state: { playerId: player.id } });
+  } finally {
+    setJoining(false);
+  }
+};
+
 
   const handlePasteCode = async () => {
     try {

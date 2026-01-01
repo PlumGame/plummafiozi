@@ -15,13 +15,11 @@ export default function Lobby() {
   const { code } = useParams();
   const location = useLocation();
   const nav = useNavigate();
-
-  const initialName = (location.state && location.state.name) || 'Игрок';
-  const initialPlayerId = (location.state && location.state.playerId) || localStorage.getItem('playerId');
+  const initialPlayerId = localStorage.getItem('playerId');
 
   const [players, setPlayers] = useState([]);
-  const [name] = useState(initialName);
-  const [playerId, setPlayerId] = useState(initialPlayerId);
+  
+  const [playerId] = useState(initialPlayerId);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [game, setGame] = useState(null);
@@ -56,7 +54,6 @@ export default function Lobby() {
       if (mounted) setLoading(false);
     })();
 
-    if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => {
       loadPlayers();
       loadGame();
@@ -66,28 +63,21 @@ export default function Lobby() {
       const { unsubscribe } = subscribePlayers(code, ({ eventType, payload }) => {
         setPlayers(prev => {
           if (eventType === 'INSERT') {
-            const newRow = payload.new;
-            if (!newRow) return prev;
-            if (prev.some(p => p.id === newRow.id)) return prev;
-            return [...prev, newRow];
+            if (!payload.new) return prev;
+            if (prev.some(p => p.id === payload.new.id)) return prev;
+            return [...prev, payload.new];
           }
           if (eventType === 'UPDATE') {
-            const updated = payload.new;
-            if (!updated) return prev;
-            return prev.map(p => (p.id === updated.id ? updated : p));
+            return prev.map(p => (p.id === payload.new.id ? payload.new : p));
           }
           if (eventType === 'DELETE') {
-            const oldRow = payload.old;
-            if (!oldRow) return prev;
-            return prev.filter(p => p.id !== oldRow.id);
+            return prev.filter(p => p.id !== payload.old.id);
           }
           return prev;
         });
       });
       playersUnsubRef.current = unsubscribe;
-    } catch (e) {
-      console.warn('subscribePlayers failed', e);
-    }
+    } catch {}
 
     try {
       const { unsubscribe } = subscribeGames(code, ({ payload }) => {
@@ -95,9 +85,7 @@ export default function Lobby() {
         if (row) setGame(row);
       });
       gamesUnsubRef.current = unsubscribe;
-    } catch (e) {
-      console.warn('subscribeGames failed', e);
-    }
+    } catch {}
 
     return () => {
       mounted = false;
@@ -107,17 +95,25 @@ export default function Lobby() {
     };
   }, [code]);
 
+  // 🚀 переход в игру ТОЛЬКО если игра реально идёт
   useEffect(() => {
-    if (game?.state === 'running') {
-      nav(`/game/${code}`, { state: { gameId: game.id, playerId, name } });
-    }
-  }, [game, code, nav, playerId, name]);
+  if (game?.state === 'running' && game?.phase !== 'ended') {
+    nav(`/game/${code}`, {
+      state: { gameId: game.id, playerId },
+    });
+  }
+}, [game, code, nav, playerId]);
 
   const toggleReady = async (id, current) => {
-    setPlayers(prev => prev.map(p => (p.id === id ? { ...p, is_ready: !current } : p)));
+    setPlayers(prev =>
+      prev.map(p => (p.id === id ? { ...p, is_ready: !current } : p))
+    );
+
     const { data, error } = await setPlayerReady(id, !current);
     if (error) {
-      setPlayers(prev => prev.map(p => (p.id === id ? { ...p, is_ready: current } : p)));
+      setPlayers(prev =>
+        prev.map(p => (p.id === id ? { ...p, is_ready: current } : p))
+      );
       setErrorBanner('Не удалось изменить готовность');
       setTimeout(() => setErrorBanner(null), 4000);
     } else if (data) {
@@ -126,7 +122,9 @@ export default function Lobby() {
   };
 
   const handleLeave = async () => {
-    try { playerId && await removePlayer(playerId); } catch {}
+    try {
+      playerId && await removePlayer(playerId);
+    } catch {}
     localStorage.removeItem('playerId');
     nav('/');
   };
@@ -142,13 +140,16 @@ export default function Lobby() {
     }
   };
 
-  const currentPlayerRecord = players.find(p => p.id === playerId);
-  const isHost = !!(currentPlayerRecord && currentPlayerRecord.is_host);
-  const fallbackHost = !isHost && players.length > 0 && players[0].id === playerId;
+  // ✅ ЕДИНСТВЕННО ПРАВИЛЬНОЕ ОПРЕДЕЛЕНИЕ ХОСТА
+  const isHost = players.some(
+  p => p.id === playerId && p.is_host === true
+);
+
+
   const allReady = players.length > 0 && players.every(p => p.is_ready);
 
   const handleStartGame = async () => {
-    if (!isHost && !fallbackHost) return;
+    if (!isHost) return;
     if (!allReady && !confirm('Не все игроки готовы. Всё равно начать?')) return;
 
     try {
@@ -158,7 +159,11 @@ export default function Lobby() {
         setTimeout(() => setErrorBanner(null), 6000);
         return;
       }
-      res.data?.game_id && nav(`/game/${code}`, { state: { gameId: res.data.game_id, playerId, name } });
+res.data?.game_id &&
+  nav(`/game/${code}`, {
+    state: { gameId: res.data.game_id, playerId },
+  });
+
     } catch {
       setErrorBanner('Ошибка при старте игры');
       setTimeout(() => setErrorBanner(null), 6000);
@@ -170,7 +175,8 @@ export default function Lobby() {
       <div className="title-wrap">
         <h1 className="app-title flicker">МАФИЯ</h1>
         <p className="subtitle">
-          Лобби — код комнаты: <strong className="code-highlight">{code || '—'}</strong>
+          Лобби — код комнаты:{' '}
+          <strong className="code-highlight">{code || '—'}</strong>
         </p>
       </div>
 
@@ -180,13 +186,23 @@ export default function Lobby() {
         <div className="top-controls">
           <div className="code-group">
             <div className="room-code">{code || '—'}</div>
-            <button className="glow-btn" onClick={handleCopyCode}>{copied ? 'Скопировано' : 'Копировать код'}</button>
+            <button className="glow-btn" onClick={handleCopyCode}>
+              {copied ? 'Скопировано' : 'Копировать код'}
+            </button>
           </div>
 
           <div className="action-buttons">
-            <button className="glow-btn ghost" onClick={handleLeave}>Выйти</button>
-            {(isHost || fallbackHost) && (
-              <button className="glow-btn start-game" onClick={handleStartGame}>Начать игру</button>
+            <button className="glow-btn ghost" onClick={handleLeave}>
+              Выйти
+            </button>
+
+            {isHost && (
+              <button
+                className="glow-btn start-game"
+                onClick={handleStartGame}
+              >
+                Начать игру
+              </button>
             )}
           </div>
         </div>
@@ -195,22 +211,39 @@ export default function Lobby() {
           <h3>Игроки ({players.length})</h3>
           <ul className="players-list">
             {players.map(p => (
-              <li key={p.id} className={`player-item ${!p.is_alive ? 'dead' : ''}`}>
+              <li
+                key={p.id}
+                className={`player-item ${!p.is_alive ? 'dead' : ''}`}
+              >
                 <div className="player-info">
-                  <div className="player-avatar">{p.name?.charAt(0).toUpperCase() || '?'}</div>
+                  <div className="player-avatar">
+                    {p.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
                   <div>
                     <div className="player-name">
-                      {p.name} {p.is_host && <span className="host-label">(host)</span>}
+                      {p.name}{' '}
+                      {p.is_host && (
+                        <span className="host-label">(host)</span>
+                      )}
                     </div>
-                    <div className="player-status">{p.is_alive ? 'В игре' : 'Выбывший'}</div>
+                    <div className="player-status">
+                      {p.is_alive ? 'В игре' : 'Выбывший'}
+                    </div>
                   </div>
                 </div>
                 <div className="player-actions">
-                  <div className={`ready-status ${p.is_ready ? 'ready' : 'not-ready'}`}>
+                  <div
+                    className={`ready-status ${
+                      p.is_ready ? 'ready' : 'not-ready'
+                    }`}
+                  >
                     {p.is_ready ? 'Готов' : 'Не готов'}
                   </div>
                   {p.id === playerId && (
-                    <button className="glow-btn ready-btn" onClick={() => toggleReady(p.id, p.is_ready)}>
+                    <button
+                      className="glow-btn ready-btn"
+                      onClick={() => toggleReady(p.id, p.is_ready)}
+                    >
                       {p.is_ready ? 'Отменить' : 'Готов'}
                     </button>
                   )}
@@ -221,7 +254,7 @@ export default function Lobby() {
         </section>
       </div>
 
-      <footer className="small-footer"></footer>
+      <footer className="small-footer" />
     </div>
   );
 }
