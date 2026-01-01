@@ -1,4 +1,15 @@
+// src/lib/rooms.js
 import { supabase } from './supabase';
+
+/* Вспомогательная функция для перемешивания массива */
+const shuffle = (array) => {
+  const newArr = [...array];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+};
 
 /* Room / Player helpers */
 
@@ -20,27 +31,20 @@ export async function getRoom(code) {
   }
 }
 
-export async function addPlayer({ roomCode, name, isHost = false }) {
+/* Исправленная функция addPlayer: первый игрок автоматически хост */
+export async function addPlayer({ roomCode, name }) {
   try {
-    let res = await supabase
+    // Проверяем, есть ли уже игроки в комнате
+    const { data: existingPlayers } = await fetchPlayers(roomCode);
+    const isHost = !existingPlayers || existingPlayers.length === 0; // первый игрок — хост
+
+    const res = await supabase
       .from('players')
-      .insert([{ room_code: roomCode, name, is_host: isHost }])
+      .insert([{ room_code: roomCode, name, is_host: isHost, is_alive: true }])
       .select()
       .single();
 
-    if (
-      res &&
-      res.error &&
-      typeof res.error.message === 'string' &&
-      res.error.message.includes("Could not find the 'is_host' column")
-    ) {
-      res = await supabase
-        .from('players')
-        .insert([{ room_code: roomCode, name }])
-        .select('id,room_code,name,joined_at,is_ready,is_alive,is_host')
-        .single();
-    }
-
+    // Сохраняем id игрока в localStorage
     if (res?.data?.id) {
       try { localStorage.setItem('playerId', res.data.id); } catch {}
     }
@@ -77,12 +81,46 @@ export async function setPlayerReady(playerId, isReady) {
 
 export async function startGame(roomCode) {
   try {
+    const { data: players } = await fetchPlayers(roomCode);
+    if (!players?.length) throw new Error('Игроки не найдены');
+
+    const playerIds = players.map(p => p.id);
+
     const res = await supabase.rpc('start_game_rpc', { p_room_code: roomCode });
-    let payload = res.data ?? null;
-    try { if (typeof payload === 'string') payload = JSON.parse(payload); } catch {}
-    return { data: payload, error: res.error ?? null, status: res.status ?? null };
+    if (res.error) throw res.error;
+
+    const { data: game } = await fetchGameByCode(roomCode);
+    if (!game) throw new Error('Не удалось получить данные игры');
+
+    await supabase.from('player_roles').delete().eq('game_id', game.id);
+
+    const count = players.length;
+    let rolesPool = [];
+    if (count >= 4) {
+      rolesPool = ['mafia', 'sheriff', 'doctor'];
+      while (rolesPool.length < count) rolesPool.push('villager');
+    } else {
+      rolesPool = ['mafia', 'sheriff', 'villager', 'villager'].slice(0, count);
+    }
+
+    const shuffledRoles = shuffle(rolesPool);
+
+    const roleAssignments = players.map((player, index) => ({
+      game_id: game.id,
+      player_id: player.id,
+      role: shuffledRoles[index],
+      is_alive: true,
+    }));
+
+    const { error: roleErr } = await supabase.from('player_roles').insert(roleAssignments);
+    if (roleErr) throw roleErr;
+
+    await supabase.from('players').update({ is_alive: true }).in('id', playerIds);
+
+    return { data: game, error: null };
   } catch (e) {
-    return { data: null, error: e, status: null };
+    console.error('Критическая ошибка старта игры:', e);
+    return { data: null, error: e };
   }
 }
 
@@ -110,7 +148,47 @@ export async function getMyRole(playerId, gameId) {
   }
 }
 
-/* Cleanup / misc */
+/* Actions (night/day) helpers */
+
+export async function submitPlayerAction({ gameId, playerId, phase, actionType, targetId }) {
+  try {
+    const payload = {
+      game_id: gameId,
+      player_id: playerId,
+      phase,
+      action_type: actionType,
+      target_id: targetId ?? null,
+      created_at: new Date().toISOString(),
+    };
+    const res = await supabase
+      .from('actions')
+      .upsert(payload, { onConflict: ['game_id', 'player_id', 'phase'] })
+      .select();
+    return { data: res.data ?? null, error: res.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function startNight(roomCode, durationSec = 60) {
+  try {
+    const res = await supabase.rpc('start_night', { p_code: roomCode, p_duration: durationSec });
+    return { data: res.data ?? null, error: res.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function resolveNight(roomCode) {
+  try {
+    const res = await supabase.rpc('resolve_night', { p_code: roomCode });
+    return { data: res.data ?? null, error: res.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+/* Cleanup / Realtime */
 
 export async function removePlayer(playerId) {
   try {
@@ -121,33 +199,22 @@ export async function removePlayer(playerId) {
   }
 }
 
-export async function removeRoom(code) {
-  try {
-    const res = await supabase.from('rooms').delete().eq('code', code);
-    return { data: res.data ?? null, error: res.error ?? null };
-  } catch (e) {
-    return { data: null, error: e };
-  }
-}
-
-/* Realtime helpers */
-
 export function subscribePlayers(roomCode, onChange) {
   const channel = supabase
     .channel(`room:${roomCode}:players`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${roomCode}` }, (payload) => {
-      try { onChange(payload); } catch (e) { console.error('subscribePlayers handler error', e); }
-    });
-  channel.subscribe();
-  return { unsubscribe: async () => { try { await channel.unsubscribe(); } catch {} } };
+      onChange(payload);
+    })
+    .subscribe();
+  return { unsubscribe: () => supabase.removeChannel(channel) };
 }
 
 export function subscribeGames(roomCode, onChange) {
   const channel = supabase
     .channel(`room:${roomCode}:games`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `room_code=eq.${roomCode}` }, (payload) => {
-      try { onChange(payload); } catch (e) { console.error('subscribeGames handler error', e); }
-    });
-  channel.subscribe();
-  return { unsubscribe: async () => { try { await channel.unsubscribe(); } catch {} } };
+      onChange(payload);
+    })
+    .subscribe();
+  return { unsubscribe: () => supabase.removeChannel(channel) };
 }
