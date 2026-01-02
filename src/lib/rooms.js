@@ -270,3 +270,15 @@ export async function getPlayer(roomCode, playerId) {
     .single();
 }
 
+export async function sheriffCheck(gameId, sheriffId, targetId) {
+  const res = await supabase.rpc('sheriff_check_rpc', {
+    p_game_id: gameId,
+    p_sheriff_id: sheriffId,
+    p_target_id: targetId,
+  });
+
+  if (res.error) throw res.error;
+  return res.data; // ← роль
+}
+
+

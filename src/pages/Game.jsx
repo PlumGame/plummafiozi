@@ -5,6 +5,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import './css/Game.css';
 import { ROLES } from '../config/roles';
 import { supabase } from '../lib/supabase';
+
 import {
   fetchGameByCode,
   getMyRole,
@@ -13,6 +14,7 @@ import {
   startNight,
   resolveNight,
   resolveDay, // если будешь использовать дневное голосование
+  sheriffCheck,
 } from '../lib/rooms';
 
 export default function Game() {
@@ -85,6 +87,26 @@ if (pls && g?.id) {
         const { data: roleRow } = await getMyRole(initialPlayerId, gameId);
         if (roleRow) setMyRole(roleRow);
       }
+
+// 🔔 УВЕДОМЛЕНИЕ ОТ ШЕРИФА
+      if (g.id && initialPlayerId) {
+        const { data: notes } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('player_id', initialPlayerId)
+          .eq('game_id', g.id)
+          .eq('is_read', false);
+
+        if (notes?.length) {
+          alert(notes[0].message);
+
+          await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', notes[0].id);
+        }
+      }
+
     } catch (e) {
       console.error('[loadAll] error:', e);
     } finally {
@@ -151,17 +173,31 @@ useEffect(() => {
   const roleName = myRole?.role?.toLowerCase() || null;
   const roleConfig = roleName ? ROLES[roleName] : null;
 
-  // Хост
-  const isHost = players.find(p => String(p.id) === String(initialPlayerId))?.is_host;
   const availableTargets = players.filter(
     p => p.is_alive && String(p.id) !== String(initialPlayerId)
   );
 
   const submitAction = async (actionType, targetId) => {
-    if (!targetId || actionSubmitting || !game?.id || !initialPlayerId) return;
+    if (!targetId || actionSubmitting || !game?.id) return;
     setActionSubmitting(true);
+
     try {
-      const phaseKey = `${game.phase}-${game?.day ?? 0}`;
+      // 👮 ШЕРИФ
+      if (roleName === 'sheriff') {
+        const role = await sheriffCheck(
+          game.id,
+          initialPlayerId,
+          targetId
+        );
+
+        alert(`🔎 Роль игрока: ${role.toUpperCase()}`);
+        setActionDone(true);
+        return;
+      }
+
+      // 🩸 МАФИЯ / ❤️ ДОКТОР
+      const phaseKey = `${game.phase}-${game.day ?? 0}`;
+
       await submitPlayerAction({
         gameId: game.id,
         playerId: initialPlayerId,
@@ -169,6 +205,7 @@ useEffect(() => {
         actionType,
         targetId,
       });
+
       setActionDone(true);
     } catch (e) {
       alert('Ошибка: ' + e.message);
