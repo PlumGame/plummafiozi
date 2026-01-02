@@ -95,11 +95,10 @@ if (pls && g?.id) {
 useEffect(() => {
   loadAll();
 
-  if (game?.phase === 'ended') return;
-
   const i = setInterval(loadAll, 1000);
   return () => clearInterval(i);
-}, [code, game?.phase]);
+}, [code]);
+
 
 
   // Сбрасываем состояние действия при смене фазы или дня
