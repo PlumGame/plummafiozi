@@ -173,6 +173,11 @@ useEffect(() => {
   const roleName = myRole?.role?.toLowerCase() || null;
   const roleConfig = roleName ? ROLES[roleName] : null;
 
+// ✅ ВОТ ЭТО НУЖНО ДОБАВИТЬ
+const isHost = players.find(
+  p => String(p.id) === String(initialPlayerId)
+)?.is_host;
+
   const availableTargets = players.filter(
     p => p.is_alive && String(p.id) !== String(initialPlayerId)
   );
