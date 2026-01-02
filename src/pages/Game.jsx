@@ -57,8 +57,28 @@ const endHandledRef = useRef(false);
         setPhaseEndsAt(g.phase_ends_at);
       }
 
-      const { data: pls } = await fetchPlayers(code);
-      if (pls) setPlayers(pls);
+  const { data: pls } = await fetchPlayers(code);
+
+if (pls && g?.id) {
+  const { data: roles } = await supabase
+    .from('player_roles')
+    .select('player_id, is_alive')
+    .eq('game_id', g.id);
+
+  const aliveMap = new Map(
+    roles?.map(r => [String(r.player_id), r.is_alive])
+  );
+
+  const merged = pls.map(p => ({
+    ...p,
+    is_alive: aliveMap.has(String(p.id))
+      ? aliveMap.get(String(p.id))
+      : true,
+  }));
+
+  setPlayers(merged);
+}
+
 
       const gameId = initialGameId || (g && g.id);
       if (initialPlayerId && gameId) {
