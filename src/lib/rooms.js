@@ -281,4 +281,11 @@ export async function sheriffCheck(gameId, sheriffId, targetId) {
   return res.data; // ← роль
 }
 
+export async function fetchGameEvents(gameId) {
+  return supabase
+    .from('game_events')
+    .select('*')
+    .eq('game_id', gameId)
+    .order('created_at', { ascending: true });
+}
 

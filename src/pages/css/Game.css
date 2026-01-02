@@ -442,3 +442,18 @@
   min-width: 280px;
   box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
+
+.player-row.killed-night {
+  background: rgba(255, 71, 87, 0.15);
+  border-left: 4px solid #ff4757;
+  animation: flashKill 1.2s ease;
+}
+
+@keyframes flashKill {
+  0% { background: rgba(255, 71, 87, 0.4); }
+  100% { background: rgba(255, 71, 87, 0.15); }
+}
+
+.vote-item {
+  transition: all 0.25s ease;
+}

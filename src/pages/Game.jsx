@@ -5,6 +5,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import './css/Game.css';
 import { ROLES } from '../config/roles';
 import { supabase } from '../lib/supabase';
+import sheriffCheckImg from '../assets/checksherif.png';
 
 import {
   fetchGameByCode,
@@ -19,6 +20,12 @@ import {
 
 export default function Game() {
   const { code } = useParams();
+  // 👮 модалка результата для шерифа
+const [sheriffResult, setSheriffResult] = useState(null);
+
+// 🎭 модалка для игрока, которого проверили
+const [checkedBySheriff, setCheckedBySheriff] = useState(false);
+
   const location = useLocation();
   const nav = useNavigate();
 const endHandledRef = useRef(false);
@@ -32,6 +39,9 @@ const endHandledRef = useRef(false);
 
   const [players, setPlayers] = useState([]);
   const [myRole, setMyRole] = useState(null);
+const [votes, setVotes] = useState({});
+const sheriffShownRef = useRef(false);
+
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [playersOpen, setPlayersOpen] = useState(false);
@@ -97,14 +107,39 @@ if (pls && g?.id) {
           .eq('game_id', g.id)
           .eq('is_read', false);
 
-        if (notes?.length) {
-          alert(notes[0].message);
+if (notes?.length && !checkedBySheriff) {
+  if (notes[0].type === 'sheriff_check') {
+    setCheckedBySheriff(true);
+  }
 
-          await supabase
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('id', notes[0].id);
-        }
+  await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', notes[0].id);
+}
+
+
+        // 🗳️ ЗАГРУЗКА ГОЛОСОВ (ТОЛЬКО ДНЁМ)
+if (g?.id && g.phase === 'day') {
+  const phaseKey = `day-${g.day ?? 0}`;
+
+  const { data: voteRows } = await supabase
+    .from('actions')
+    .select('player_id, target_id')
+    .eq('game_id', g.id)
+    .eq('action_type', 'vote')
+    .eq('phase', phaseKey);
+
+  const voteMap = {};
+  voteRows?.forEach(v => {
+    voteMap[String(v.player_id)] = String(v.target_id);
+  });
+
+  setVotes(voteMap);
+} else {
+  setVotes({});
+}
+
       }
 
     } catch (e) {
@@ -182,42 +217,66 @@ const isHost = players.find(
     p => p.is_alive && String(p.id) !== String(initialPlayerId)
   );
 
-  const submitAction = async (actionType, targetId) => {
-    if (!targetId || actionSubmitting || !game?.id) return;
-    setActionSubmitting(true);
+const submitAction = async (actionType, targetId) => {
+  if (!targetId || actionSubmitting || !game?.id) return;
+  setActionSubmitting(true);
 
-    try {
-      // 👮 ШЕРИФ
-      if (roleName === 'sheriff') {
-        const role = await sheriffCheck(
-          game.id,
-          initialPlayerId,
-          targetId
-        );
+  try {
+    // 👮 ШЕРИФ — ПРОВЕРКА ТОЛЬКО НОЧЬЮ
+if (
+  roleName === 'sheriff' &&
+  game.phase === 'night' &&
+  actionType === 'check'
+) {
+  const role = await sheriffCheck(
+    game.id,
+    initialPlayerId,
+    targetId
+  );
 
-        alert(`🔎 Роль игрока: ${role.toUpperCase()}`);
-        setActionDone(true);
-        return;
-      }
+  const targetPlayer = players.find(
+    p => String(p.id) === String(targetId)
+  );
 
-      // 🩸 МАФИЯ / ❤️ ДОКТОР
-      const phaseKey = `${game.phase}-${game.day ?? 0}`;
+  // 👮 результат для шерифа
+const normalizedRole =
+  role === 'civilian' ? 'villager' : role.toLowerCase();
 
-      await submitPlayerAction({
-        gameId: game.id,
-        playerId: initialPlayerId,
-        phase: phaseKey,
-        actionType,
-        targetId,
-      });
+setSheriffResult({
+  name: targetPlayer?.name ?? 'Игрок',
+  role: normalizedRole,
+});
 
-      setActionDone(true);
-    } catch (e) {
-      alert('Ошибка: ' + e.message);
-    } finally {
-      setActionSubmitting(false);
-    }
-  };
+  // 📩 уведомление проверенному игроку
+  await supabase.from('notifications').insert({
+    player_id: targetId,
+    game_id: game.id,
+    message: '🔍 Вас проверял шериф',
+    type: 'sheriff_check',
+  });
+
+  setActionDone(true);
+  return;
+}
+
+    // 🗳️ ГОЛОСОВАНИЕ (ВСЕ, ВКЛЮЧАЯ ШЕРИФА)
+    const phaseKey = `${game.phase}-${game.day ?? 0}`;
+
+    await submitPlayerAction({
+      gameId: game.id,
+      playerId: initialPlayerId,
+      phase: phaseKey,
+      actionType,
+      targetId,
+    });
+
+    setActionDone(true);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  } finally {
+    setActionSubmitting(false);
+  }
+};
 
   const handleStartNight = async (sec = 60) => {
     try {
@@ -424,8 +483,63 @@ const isHost = players.find(
                   )}
                 </div>
               )}
-          </section>
+{game?.phase === 'day' &&
+  myRole?.is_alive && (
+    <div
+      className="action-panel"
+      style={{
+        marginTop: 20,
+        padding: 15,
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+      }}
+    >
+      <p
+        style={{
+          fontSize: 12,
+          marginBottom: 10,
+          opacity: 0.7,
+        }}
+      >
+        Голосование:
+      </p>
 
+      <div style={{ display: 'flex', gap: 8 }}>
+        <select
+          disabled={actionDone}
+          value={actionTarget}
+          onChange={e => setActionTarget(e.target.value)}
+          className="action-select"
+        >
+          <option value="">Выберите игрока</option>
+          {availableTargets.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+
+        <button
+          className={`glow-btn ${actionDone ? 'success' : ''}`}
+          disabled={!actionTarget || actionDone}
+          onClick={() => submitAction('vote', actionTarget)}
+        >
+          {actionDone ? 'Голос учтён' : 'ОК'}
+        </button>
+      </div>
+
+      {timer !== null && (
+        <div
+          className="timer-sub"
+          style={{ marginTop: 10, fontSize: 11 }}
+        >
+          Осталось: {timer}с
+        </div>
+      )}
+    </div>
+  )}
+
+          </section>
           <aside className="players-area card-soft">
             <div className="players-header">
               <h3 className="section-title">Игроки ({players.length})</h3>
@@ -442,25 +556,47 @@ const isHost = players.find(
               }`}
             >
               <ul className="players-compact">
-                {players.map(p => (
-                  <li
-                    key={p.id}
-                    className={`player-row ${
-                      String(p.id) === String(initialPlayerId) ? 'you' : ''
-                    } ${!p.is_alive ? 'dead' : ''}`}
-                  >
-                    <span className="player-name">
-                      {p.name} {p.is_host && '⭐'}
-                    </span>
-                    <span
-                      className={`status-tag ${
-                        p.is_alive ? 'alive' : 'out'
-                      }`}
-                    >
-                      {p.is_alive ? 'Жив' : 'Выбыл'}
-                    </span>
-                  </li>
-                ))}
+ {players.map(p => {
+  const votedForId = votes[String(p.id)];
+  const votedFor = players.find(
+    x => String(x.id) === votedForId
+  );
+
+  return (
+    <li
+      key={p.id}
+      className={`player-row ${
+        String(p.id) === String(initialPlayerId) ? 'you' : ''
+      } ${!p.is_alive ? 'dead' : ''}`}
+    >
+      <span className="player-name">
+        {p.name} {p.is_host && '⭐'}
+      </span>
+
+      <span
+        className={`status-tag ${
+          p.is_alive ? 'alive' : 'out'
+        }`}
+      >
+        {p.is_alive ? 'Жив' : 'Выбыл'}
+      </span>
+
+      {/* 🗳️ КТО ЗА КОГО ПРОГОЛОСОВАЛ */}
+      {game?.phase === 'day' && votedFor && (
+        <span
+          style={{
+            fontSize: 11,
+            opacity: 0.7,
+            marginLeft: 8,
+          }}
+        >
+          🗳️ → {votedFor.name}
+        </span>
+      )}
+    </li>
+  );
+})}
+
               </ul>
 {game?.phase !== 'ended' && (
   <button
@@ -471,8 +607,6 @@ const isHost = players.find(
     В лобби
   </button>
 )}
-
-
               {showEndModal && (
   <div className="modal-overlay">
     <div className="modal-card">
@@ -495,6 +629,68 @@ const isHost = players.find(
     </div>
   </div>
 )}
+
+{checkedBySheriff && (
+  <div className="modal-overlay">
+    <div className="modal-card">
+<img
+  src={sheriffCheckImg}
+  alt="Проверка шерифа"
+  style={{ width: 120, marginBottom: 20 }}
+/>
+
+
+      <div style={{ fontSize: 18, marginBottom: 20 }}>
+        Вас проверил шериф
+      </div>
+
+      <button
+        className="glow-btn"
+        onClick={() => setCheckedBySheriff(false)}
+      >
+        OK
+      </button>
+    </div>
+  </div>
+)}
+
+{sheriffResult && (
+  <div className="modal-overlay">
+    <div className="modal-card">
+      <div style={{ fontSize: 20, marginBottom: 10 }}>
+        🔎 Проверка шерифа
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        Игрок: <strong>{sheriffResult.name}</strong>
+      </div>
+
+      <img
+        src={ROLES[sheriffResult.role]?.image}
+        alt={sheriffResult.role}
+        style={{ width: 120, marginBottom: 10 }}
+      />
+
+      <div
+        style={{
+          fontSize: 18,
+          color: ROLES[sheriffResult.role]?.color,
+          marginBottom: 20,
+        }}
+      >
+        {ROLES[sheriffResult.role]?.name}
+      </div>
+
+      <button
+        className="glow-btn"
+        onClick={() => setSheriffResult(null)}
+      >
+        OK
+      </button>
+    </div>
+  </div>
+)}
+
 
             </div>
           </aside>
