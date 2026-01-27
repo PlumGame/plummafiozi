@@ -1,0 +1,101 @@
+/* ===========================
+   Mobile-first polish (append)
+   =========================== */
+
+/* Safe area support for phones with notches */
+.screen-center {
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+/* Title card: subtle glass behind title for legibility on busy backgrounds */
+.title-card {
+  display: inline-block;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.18));
+  backdrop-filter: blur(6px) saturate(1.05);
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+
+/* Make title more compact and readable on small screens */
+@media (max-width: 480px) {
+  .app-title {
+    font-size: 40px; /* large but fits */
+    letter-spacing: 1px;
+    line-height: 1.02;
+    padding: 0;
+    margin: 0;
+    text-shadow: 0 8px 28px rgba(0,0,0,0.7);
+  }
+
+  .subtitle {
+    font-size: 13px;
+    margin-top: 6px;
+    color: rgba(255,255,255,0.88);
+  }
+
+  /* Buttons: full-width, large touch targets, friendly radius */
+  .btn-column {
+    width: 100%;
+    max-width: 420px;
+    padding: 0 12px;
+    gap: 12px;
+  }
+
+  .btn-column .glow-btn {
+    font-size: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,216,77,0.12), rgba(255,200,50,0.06));
+    color: #fff;
+    border: 1px solid rgba(255,200,50,0.12);
+    box-shadow:
+      0 8px 30px rgba(0,0,0,0.6),
+      0 6px 18px rgba(255,180,40,0.06);
+    text-shadow: 0 0 8px rgba(255,200,60,0.9);
+    transition: transform 160ms cubic-bezier(.2,.9,.25,1), box-shadow 160ms ease, opacity 120ms ease;
+    opacity: 0.98;
+  }
+
+  .btn-column .glow-btn.ghost {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    color: rgba(255,230,180,0.95);
+    border: 1px solid rgba(255,255,255,0.04);
+    text-shadow: none;
+  }
+
+  .btn-column .glow-btn:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.6), 0 8px 30px rgba(255,180,40,0.08);
+  }
+
+  .btn-column .glow-btn:active {
+    transform: translateY(-1px) scale(.995);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  }
+
+  /* Make footer unobtrusive and above safe area */
+  .small-footer {
+    position: relative;
+    bottom: 0;
+    margin-top: 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Slightly reduce heavy animations on mobile for performance */
+  .role-thumb { animation-duration: 6s; }
+}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .btn-column .glow-btn,
+  .app-title.flicker,
+  .role-thumb {
+    animation: none !important;
+    transition: none !important;
+  }
+}

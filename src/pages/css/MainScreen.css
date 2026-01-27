@@ -1,0 +1,297 @@
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ===== SCREEN ===== */
+.ms-screen {
+  position: relative;
+  width: 100vw;
+  height: 100svh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+}
+
+/* ===== BACKGROUND ===== */
+.ms-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(255, 0, 0, 0.18), transparent 40%),
+    linear-gradient(to bottom, rgba(0, 0, 0, .35), #000),
+    url("../../assets/bg.gif");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: contrast(1.1) brightness(0.6);
+  animation: bgPulse 8s infinite alternate;
+}
+
+@keyframes bgPulse {
+  from {
+    filter: brightness(0.5);
+  }
+
+  to {
+    filter: brightness(0.7);
+  }
+}
+
+/* ===== CONTENT ===== */
+.ms-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* ===== TITLE CARD ===== */
+.ms-title-card {
+  margin-top: 10vh;
+  text-align: center;
+}
+
+.ms-title {
+  font-size: clamp(48px, 14vw, 96px);
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #ff1e1e;
+  text-shadow:
+    0 0 10px #ff1e1e,
+    0 0 25px rgba(255, 0, 0, 0.8),
+    0 0 60px rgba(255, 0, 0, 0.6);
+  animation: flicker 2.5s infinite, glitch 3s infinite;
+}
+
+/* МЕРЦАНИЕ */
+@keyframes flicker {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  45% {
+    opacity: 0.85;
+  }
+
+  47% {
+    opacity: 0.4;
+  }
+
+  49% {
+    opacity: 1;
+  }
+
+  52% {
+    opacity: 0.7;
+  }
+}
+
+/* GLITCH */
+@keyframes glitch {
+  0% {
+    transform: none;
+  }
+
+  20% {
+    transform: skew(-1deg);
+  }
+
+  40% {
+    transform: skew(1deg);
+  }
+
+  60% {
+    transform: translateX(-2px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+.ms-subtitle {
+  margin-top: 12px;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  opacity: 0.75;
+}
+
+/* ===== ACTIONS ===== */
+.ms-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 10vh;
+}
+
+.ms-btn {
+  height: 35px;
+  border-radius: 10px;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* PRIMARY */
+.ms-btn-primary {
+  background: linear-gradient(135deg, #ff1e1e, #b30000);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+}
+
+.ms-btn-primary:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 35px rgba(255, 0, 0, 0.7);
+}
+
+/* SECONDARY */
+.ms-btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ms-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* GHOST */
+.ms-btn-ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ms-btn-ghost:hover {
+  color: #fff;
+}
+
+/* ===== FOOTER ===== */
+.ms-footer {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.4;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.lobby-root {
+  touch-action: pan-y;
+}
+
+
+
+
+/* ====== SMALL CENTER SOUND BUTTON ====== */
+.ms-sound-btn {
+  margin: 1px auto 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 8px 8px;
+  border-radius: 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.052);
+
+  color: #fff;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  backdrop-filter: blur(6px);
+}
+
+.ms-sound-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ms-sound-btn:active {
+  transform: translateY(0);
+}
+
+.ms-sound-btn.off {
+  background: rgba(255, 0, 0, 0.093);
+  border-color: rgba(255, 0, 0, 0.426);
+}
+
+.ms-sound-btn.off .ms-sound-icon {
+  background: rgba(255, 0, 0, 0.12);
+}
+
+/* ===== SUPPORT BUTTON ===== */
+.ms-btn-support {
+   margin: 0 auto; /* 👈 ВОТ ЭТО ЦЕНТРИРУЕТ */
+  height: 35px; /* как у остальных */
+  width: 230px;
+  border-radius: 10px;
+
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    #4aff03,
+    #006a09
+  );
+
+  box-shadow:
+    0 0 14px rgba(0, 140, 21, 0.45);
+
+  transition: all 0.25s ease;
+}
+
+/* hover — как у primary, но мягче */
+.ms-btn-support:hover {
+  transform: scale(1.03);
+  box-shadow:
+    0 0 26px rgba(70, 255, 3, 0.75);
+}
+
+/* active */
+.ms-btn-support:active {
+  transform: scale(0.98);
+}
+
